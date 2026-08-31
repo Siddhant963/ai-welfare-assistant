@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { TriageOutputSchema } from "./triage.ts";
+import { SAFETY_FLAGS } from "../safety/types.ts";
 
 /**
  * Shared client/server contract for POST /api/chat's success response.
- * `triage.status === "ok"` reuses TriageOutputSchema's fields directly so
- * the two never drift. `"unavailable"` is the safe, non-fabricated fallback
- * shown when AI triage failed — it never carries classification fields.
+ * `decision` is always the FINAL, safety-engine-corrected result — never
+ * the AI's raw, unvalidated recommendation (that stays server-side, in
+ * TriageResult.rawOutput.ai, for audit only). `safetyFlags` includes
+ * "ai_unavailable" when the AI itself failed, so the client can show
+ * appropriately humble language without a separate status branch.
  */
 export const ChatResponseSchema = z.object({
   conversationId: z.string(),
@@ -15,13 +17,26 @@ export const ChatResponseSchema = z.object({
     content: z.string(),
     createdAt: z.string(),
   }),
-  triage: z.discriminatedUnion("status", [
-    TriageOutputSchema.extend({ status: z.literal("ok") }),
-    z.object({
-      status: z.literal("unavailable"),
-      notice: z.string(),
-    }),
-  ]),
+  decision: z.object({
+    category: z.enum([
+      "academic",
+      "financial",
+      "visa_immigration",
+      "housing",
+      "health_wellbeing",
+      "other",
+    ]),
+    urgency: z.enum(["low", "medium", "high", "critical"]),
+    safeguarding: z.boolean(),
+    disposition: z.enum(["handle_now", "ask_clarifying", "escalate"]),
+    safetyFlags: z.array(z.enum(SAFETY_FLAGS)),
+    emergencySupport: z
+      .object({
+        emergencyServices: z.string(),
+        samaritans: z.string(),
+      })
+      .nullable(),
+  }),
 });
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { ChatRequestSchema } from "../../../lib/validation/chatRequest.ts";
-import { fromValidatedTriage } from "../../../lib/validation/triageMapping.ts";
+import { categoryToWire, dispositionToWire, urgencyToWire } from "../../../lib/validation/triageMapping.ts";
 import { runTriage } from "../../../lib/ai/triage.ts";
+import { evaluateSafety } from "../../../lib/safety/rules.ts";
 import {
   createStudentMessage,
   findOrCreateStudent,
@@ -47,20 +48,17 @@ export async function POST(request: Request) {
 
     const studentMessage = await createStudentMessage(conversation.id, message);
 
+    // AI triage is a recommendation only. The safety engine — not the AI —
+    // owns the final urgency/safeguarding/disposition decision, and it runs
+    // its own independent pattern checks against the raw message regardless
+    // of whether AI triage succeeded (evaluateSafety accepts triage: null).
     const triageOutcome = await runTriage(message);
-    await persistTriageResult(studentMessage.id, triageOutcome);
-
-    const triage =
-      triageOutcome.status === "success"
-        ? {
-            status: "ok" as const,
-            ...fromValidatedTriage(triageOutcome.data),
-          }
-        : {
-            status: "unavailable" as const,
-            notice:
-              "I couldn't process that message automatically just now. It's been saved, and a team member may need to follow up with you directly.",
-          };
+    const decision = evaluateSafety({
+      message,
+      triage: triageOutcome.status === "success" ? triageOutcome.data : null,
+      aiFailureReason: triageOutcome.status !== "success" ? triageOutcome.message : undefined,
+    });
+    await persistTriageResult(studentMessage.id, triageOutcome, decision);
 
     return NextResponse.json({
       conversationId: conversation.id,
@@ -70,7 +68,14 @@ export async function POST(request: Request) {
         content: studentMessage.content,
         createdAt: studentMessage.createdAt.toISOString(),
       },
-      triage,
+      decision: {
+        category: categoryToWire(decision.category),
+        urgency: urgencyToWire(decision.urgency),
+        safeguarding: decision.safeguarding,
+        disposition: dispositionToWire(decision.disposition),
+        safetyFlags: decision.safetyFlags,
+        emergencySupport: decision.emergencySupport,
+      },
     });
   } catch (error) {
     console.error("POST /api/chat failed:", error instanceof Error ? error.message : error);

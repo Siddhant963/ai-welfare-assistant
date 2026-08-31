@@ -1,7 +1,8 @@
 import { prisma } from "./client.ts";
-import { Category, Disposition, MessageRole, Urgency } from "../../generated/prisma/client.ts";
-import type { Conversation, Message, Student, TriageResult } from "../../generated/prisma/client.ts";
+import { MessageRole } from "../../generated/prisma/client.ts";
+import type { Conversation, Message, Prisma, Student, TriageResult } from "../../generated/prisma/client.ts";
 import type { TriageOutcome } from "../ai/triage.ts";
+import type { FinalDecision } from "../safety/rules.ts";
 
 /**
  * Identifies the conversation, not an authentication system — a student is
@@ -53,38 +54,45 @@ export async function createStudentMessage(conversationId: string, content: stri
 
 /**
  * Persists every triage attempt, success or not — this is the audit trail
- * (see docs/database.md on why TriageResult is 1:N). A failed AI call or
- * invalid AI output is NEVER persisted as if it were a real classification:
- * it's recorded as an explicit, clearly-labelled escalation fallback so a
- * human reviews it, distinguishable in `reason` and `rawOutput.fallback`.
+ * (see docs/database.md on why TriageResult is 1:N).
+ *
+ * TriageResult's typed columns (category/urgency/safeguarding/disposition)
+ * hold the FINAL, safety-engine-corrected decision — the thing downstream
+ * code (case creation, staff dashboard) should actually query. The
+ * original, unmodified AI recommendation is never discarded: it's kept
+ * verbatim in `rawOutput.ai` specifically so a corrected decision can
+ * always be audited against what the AI actually said (rawOutput.safetyEngine
+ * records why/whether it was overridden). See lib/safety/rules.ts.
  */
 export async function persistTriageResult(
   messageId: string,
-  outcome: TriageOutcome
+  outcome: TriageOutcome,
+  decision: FinalDecision
 ): Promise<TriageResult> {
-  if (outcome.status === "success") {
-    return prisma.triageResult.create({
-      data: {
-        messageId,
-        category: outcome.data.category,
-        urgency: outcome.data.urgency,
-        safeguarding: outcome.data.safeguarding,
-        disposition: outcome.data.disposition,
-        reason: outcome.data.reason,
-        rawOutput: outcome.rawOutput,
-      },
-    });
-  }
+  const aiRawOutput: Prisma.InputJsonValue =
+    outcome.status === "success"
+      ? outcome.rawOutput
+      : { failed: true, stage: outcome.status, message: outcome.message, details: outcome.rawOutput };
 
   return prisma.triageResult.create({
     data: {
       messageId,
-      category: Category.OTHER,
-      urgency: Urgency.MEDIUM,
-      safeguarding: false,
-      disposition: Disposition.ESCALATE,
-      reason: `AI triage fallback (${outcome.status}): ${outcome.message}. Not a real classification — escalated for human review.`,
-      rawOutput: { fallback: true, details: outcome.rawOutput },
+      category: decision.category,
+      urgency: decision.urgency,
+      safeguarding: decision.safeguarding,
+      disposition: decision.disposition,
+      reason: decision.reasons.join(" ") || null,
+      rawOutput: {
+        ai: aiRawOutput,
+        safetyEngine: {
+          overriddenAi: decision.overriddenAi,
+          safetyFlags: decision.safetyFlags,
+          reasons: decision.reasons,
+          // Plain interface, not a Prisma-generated JSON type — structurally
+          // JSON-safe (two strings or null), just needs an explicit cast.
+          emergencySupport: decision.emergencySupport as Prisma.InputJsonValue | null,
+        },
+      },
     },
   });
 }

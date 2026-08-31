@@ -64,3 +64,10 @@ export function fromValidatedTriage(data: ValidatedTriage): TriageOutput {
     reason: data.reason,
   };
 }
+
+// Individual field mappers — used for the safety engine's FinalDecision,
+// whose shape (reasons[]/safetyFlags/emergencySupport) doesn't match
+// ValidatedTriage closely enough to reuse fromValidatedTriage wholesale.
+export const categoryToWire = (category: Category) => CATEGORY_TO_WIRE[category];
+export const urgencyToWire = (urgency: Urgency) => URGENCY_TO_WIRE[urgency];
+export const dispositionToWire = (disposition: Disposition) => DISPOSITION_TO_WIRE[disposition];

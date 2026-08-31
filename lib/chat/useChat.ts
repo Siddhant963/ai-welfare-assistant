@@ -93,11 +93,7 @@ export function useChat() {
 
       try {
         const result = await sendChatMessage({ student, conversationId, message: trimmed });
-
-        const replyContent =
-          result.triage.status === "ok"
-            ? formatDevTriagePreview(result.triage)
-            : result.triage.notice;
+        const replyContent = formatDevTriagePreview(result.decision);
 
         dispatch({
           type: "SEND_MESSAGE_SUCCESS",

@@ -17,8 +17,18 @@ import {
   resolveConversation,
 } from "../lib/db/chatRecords.ts";
 import { runTriage, type TriageOutcome } from "../lib/ai/triage.ts";
+import { evaluateSafety } from "../lib/safety/rules.ts";
 import { ChatRequestSchema, MAX_MESSAGE_LENGTH } from "../lib/validation/chatRequest.ts";
 import { Category, Disposition, Urgency } from "../generated/prisma/client.ts";
+
+/** Local helper mirroring what app/api/chat/route.ts does with a TriageOutcome. */
+function decisionFor(message: string, outcome: TriageOutcome) {
+  return evaluateSafety({
+    message,
+    triage: outcome.status === "success" ? outcome.data : null,
+    aiFailureReason: outcome.status !== "success" ? outcome.message : undefined,
+  });
+}
 
 type CheckResult = { name: string; pass: boolean; detail?: string };
 const results: CheckResult[] = [];
@@ -76,7 +86,7 @@ async function main() {
       messageIds.push(message.id);
 
       const outcome = await runTriage(text);
-      const triageResult = await persistTriageResult(message.id, outcome);
+      const triageResult = await persistTriageResult(message.id, outcome, decisionFor(text, outcome));
 
       assert(
         Object.values(Category).includes(triageResult.category),
@@ -118,8 +128,10 @@ async function main() {
     const message = await createStudentMessage(conversationId, TEST_MESSAGES.academic);
     messageIds.push(message.id);
 
-    await persistTriageResult(message.id, await runTriage(TEST_MESSAGES.academic));
-    await persistTriageResult(message.id, await runTriage(TEST_MESSAGES.academic));
+    const outcomeA = await runTriage(TEST_MESSAGES.academic);
+    await persistTriageResult(message.id, outcomeA, decisionFor(TEST_MESSAGES.academic, outcomeA));
+    const outcomeB = await runTriage(TEST_MESSAGES.academic);
+    await persistTriageResult(message.id, outcomeB, decisionFor(TEST_MESSAGES.academic, outcomeB));
 
     const rows = await prisma.triageResult.findMany({ where: { messageId: message.id } });
     assert(rows.length === 2, `expected 2 triage results for one message, got ${rows.length}`);
@@ -134,12 +146,20 @@ async function main() {
       message: "simulated schema validation failure",
       rawOutput: { stage: "validation", error: "schema_validation_failed", raw: { category: "not_a_real_category" } },
     };
-    const triageResult = await persistTriageResult(message.id, fakeOutcome);
+    const triageResult = await persistTriageResult(
+      message.id,
+      fakeOutcome,
+      decisionFor("simulated invalid AI output", fakeOutcome)
+    );
 
     assert(triageResult.category === Category.OTHER, "invalid output must fall back to OTHER, not an invented category");
     assert(triageResult.disposition === Disposition.ESCALATE, "invalid output must escalate, not silently pass as valid");
-    const raw = triageResult.rawOutput as Record<string, unknown>;
-    assert(raw.fallback === true, "fallback rawOutput must be marked fallback:true so it's distinguishable on audit");
+    const raw = triageResult.rawOutput as { ai: { failed: boolean }; safetyEngine: { safetyFlags: string[] } };
+    assert(raw.ai.failed === true, "the raw AI failure must be preserved in rawOutput.ai for audit, distinguishable from a real success");
+    assert(
+      raw.safetyEngine.safetyFlags.includes("ai_unavailable"),
+      "safetyEngine.safetyFlags must record that this was an AI-unavailable fallback, not a genuine classification"
+    );
   });
 
   await check("AI provider failure does not fabricate an answer (simulated)", async () => {
@@ -151,7 +171,11 @@ async function main() {
       message: "simulated network failure",
       rawOutput: { stage: "provider_error", error: "AI provider call failed" },
     };
-    const triageResult = await persistTriageResult(message.id, fakeOutcome);
+    const triageResult = await persistTriageResult(
+      message.id,
+      fakeOutcome,
+      decisionFor("simulated provider error", fakeOutcome)
+    );
 
     assert(triageResult.disposition === Disposition.ESCALATE, "provider failure must escalate rather than fabricate a classification");
   });
