@@ -1,0 +1,171 @@
+// Prisma schema for the AI Welfare Assistant
+// Phase 2: database architecture only. No application code in this file.
+// See docs/database.md for the reasoning behind these modelling decisions.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Category {
+  ACADEMIC
+  FINANCIAL
+  VISA_IMMIGRATION
+  HOUSING
+  HEALTH_WELLBEING
+  OTHER
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Disposition {
+  HANDLE_NOW
+  ASK_CLARIFYING
+  ESCALATE
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MessageRole {
+  STUDENT
+  ASSISTANT
+  SYSTEM
+}
+
+enum CaseStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        String             @id @default(cuid())
+  studentId String
+  status    ConversationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  student  Student   @relation(fields: [studentId], references: [id])
+  messages Message[]
+  // A conversation carries at most one escalated case in this MVP design.
+  case     Case?
+
+  @@index([studentId])
+  @@index([status])
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String
+  createdAt      DateTime    @default(now())
+
+  conversation  Conversation   @relation(fields: [conversationId], references: [id])
+  // Deliberately 1:N, not 1:1 — a message may be re-triaged after a
+  // clarification round-trip, and every attempt is kept for audit history.
+  triageResults TriageResult[]
+
+  @@index([conversationId, createdAt])
+}
+
+model TriageResult {
+  id           String      @id @default(cuid())
+  messageId    String
+  category     Category
+  urgency      Urgency
+  safeguarding Boolean     @default(false)
+  disposition  Disposition
+  // Short human-readable rationale (from the AI and/or the rule engine that
+  // may have overridden it) — not user-facing, for staff/audit context.
+  reason       String?
+  // Full structured AI response as returned by the provider, kept verbatim
+  // for audit/debugging. Must never contain secrets/API keys.
+  rawOutput    Json
+  createdAt    DateTime    @default(now())
+
+  message Message @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+  @@index([createdAt])
+}
+
+model Case {
+  id             String     @id @default(cuid())
+  conversationId String     @unique
+  // Final, application-decided state — deliberately separate from
+  // TriageResult so a case can never inherit a raw/unvalidated AI value.
+  summary        String
+  category       Category
+  urgency        Urgency
+  safeguarding   Boolean    @default(false)
+  status         CaseStatus @default(NEW)
+  claimedById    String?
+  claimedAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  claimedBy    Staff?       @relation(fields: [claimedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([urgency])
+  @@index([safeguarding])
+  @@index([claimedById])
+  @@index([createdAt])
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  claimedCases Case[]
+}
+
+model KnowledgeResource {
+  id        String   @id @default(cuid())
+  title     String
+  // Reuses the shared Category enum so the future retrieval layer can filter
+  // resources directly by a triage result's category. See docs/database.md
+  // for how each of the 13 supplied resources was mapped onto it.
+  category  Category
+  content   String
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}

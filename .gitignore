@@ -1,0 +1,27 @@
+node_modules
+
+# Environment variables — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Generated Prisma Client
+/generated/prisma
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Build output
+/build
+dist
+*.tsbuildinfo
+
+# Logs / OS cruft
+npm-debug.log*
+.DS_Store
+Thumbs.db
