@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useReducer } from "react";
-import { getMockAssistantResponse } from "./mockAssistantResponse";
+import { sendChatMessage } from "./api.ts";
+import { formatDevTriagePreview } from "./devTriagePreview.ts";
 import type { ChatMessage, StudentInfo } from "./types";
 
 interface ChatState {
   student: StudentInfo | null;
+  conversationId: string | null;
   messages: ChatMessage[];
   input: string;
   isSending: boolean;
@@ -16,11 +18,12 @@ type ChatAction =
   | { type: "START_CONVERSATION"; student: StudentInfo }
   | { type: "SET_INPUT"; value: string }
   | { type: "SEND_MESSAGE_START"; message: ChatMessage }
-  | { type: "SEND_MESSAGE_SUCCESS"; message: ChatMessage }
+  | { type: "SEND_MESSAGE_SUCCESS"; message: ChatMessage; conversationId: string }
   | { type: "SEND_MESSAGE_ERROR"; error: string };
 
 const initialState: ChatState = {
   student: null,
+  conversationId: null,
   messages: [],
   input: "",
   isSending: false,
@@ -45,6 +48,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: [...state.messages, action.message],
+        conversationId: action.conversationId,
         isSending: false,
       };
     case "SEND_MESSAGE_ERROR":
@@ -62,48 +66,58 @@ function createMessageId(): string {
 
 export function useChat() {
   const [state, dispatch] = useReducer(chatReducer, initialState);
+  const { student, conversationId } = state;
 
-  const startConversation = useCallback((student: StudentInfo) => {
-    dispatch({ type: "START_CONVERSATION", student });
+  const startConversation = useCallback((newStudent: StudentInfo) => {
+    dispatch({ type: "START_CONVERSATION", student: newStudent });
   }, []);
 
   const setInput = useCallback((value: string) => {
     dispatch({ type: "SET_INPUT", value });
   }, []);
 
-  const sendMessage = useCallback(async (content: string) => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
+  const sendMessage = useCallback(
+    async (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed || !student) return;
 
-    dispatch({
-      type: "SEND_MESSAGE_START",
-      message: {
-        id: createMessageId(),
-        role: "student",
-        content: trimmed,
-        createdAt: new Date().toISOString(),
-      },
-    });
-
-    try {
-      // TEMPORARY (Phase 4): see lib/chat/mockAssistantResponse.ts.
-      const reply = await getMockAssistantResponse();
       dispatch({
-        type: "SEND_MESSAGE_SUCCESS",
+        type: "SEND_MESSAGE_START",
         message: {
           id: createMessageId(),
-          role: "assistant",
-          content: reply,
+          role: "student",
+          content: trimmed,
           createdAt: new Date().toISOString(),
         },
       });
-    } catch {
-      dispatch({
-        type: "SEND_MESSAGE_ERROR",
-        error: "Something went wrong sending your message. Please try again.",
-      });
-    }
-  }, []);
+
+      try {
+        const result = await sendChatMessage({ student, conversationId, message: trimmed });
+
+        const replyContent =
+          result.triage.status === "ok"
+            ? formatDevTriagePreview(result.triage)
+            : result.triage.notice;
+
+        dispatch({
+          type: "SEND_MESSAGE_SUCCESS",
+          conversationId: result.conversationId,
+          message: {
+            id: createMessageId(),
+            role: "assistant",
+            content: replyContent,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        dispatch({
+          type: "SEND_MESSAGE_ERROR",
+          error: error instanceof Error ? error.message : "Something went wrong sending your message. Please try again.",
+        });
+      }
+    },
+    [student, conversationId]
+  );
 
   return {
     student: state.student,
