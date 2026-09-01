@@ -37,6 +37,18 @@ export const ChatResponseSchema = z.object({
       })
       .nullable(),
   }),
+  reply: z.object({
+    id: z.string(),
+    answer: z.string(),
+    sources: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        url: z.string().nullable(),
+      })
+    ),
+    createdAt: z.string(),
+  }),
 });
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;

@@ -3,7 +3,9 @@ import { ChatRequestSchema } from "../../../lib/validation/chatRequest.ts";
 import { categoryToWire, dispositionToWire, urgencyToWire } from "../../../lib/validation/triageMapping.ts";
 import { runTriage } from "../../../lib/ai/triage.ts";
 import { evaluateSafety } from "../../../lib/safety/rules.ts";
+import { buildReply } from "../../../lib/ai/reply.ts";
 import {
+  createAssistantMessage,
   createStudentMessage,
   findOrCreateStudent,
   persistTriageResult,
@@ -60,6 +62,14 @@ export async function POST(request: Request) {
     });
     await persistTriageResult(studentMessage.id, triageOutcome, decision);
 
+    // Knowledge retrieval + grounded response generation — a separate step
+    // from triage/safety, receiving only the already-final decision. See
+    // lib/ai/reply.ts for the four-way dispatch (immediate danger /
+    // clarify / escalate / handle now) and why each path does or doesn't
+    // call the AI at all.
+    const reply = await buildReply({ message, decision });
+    const assistantMessage = await createAssistantMessage(conversation.id, reply.answer, reply.sources);
+
     return NextResponse.json({
       conversationId: conversation.id,
       message: {
@@ -75,6 +85,12 @@ export async function POST(request: Request) {
         disposition: dispositionToWire(decision.disposition),
         safetyFlags: decision.safetyFlags,
         emergencySupport: decision.emergencySupport,
+      },
+      reply: {
+        id: assistantMessage.id,
+        answer: reply.answer,
+        sources: reply.sources,
+        createdAt: assistantMessage.createdAt.toISOString(),
       },
     });
   } catch (error) {

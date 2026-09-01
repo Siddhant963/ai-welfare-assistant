@@ -2,7 +2,6 @@
 
 import { useCallback, useReducer } from "react";
 import { sendChatMessage } from "./api.ts";
-import { formatDevTriagePreview } from "./devTriagePreview.ts";
 import type { ChatMessage, StudentInfo } from "./types";
 
 interface ChatState {
@@ -93,16 +92,16 @@ export function useChat() {
 
       try {
         const result = await sendChatMessage({ student, conversationId, message: trimmed });
-        const replyContent = formatDevTriagePreview(result.decision);
 
         dispatch({
           type: "SEND_MESSAGE_SUCCESS",
           conversationId: result.conversationId,
           message: {
-            id: createMessageId(),
+            id: result.reply.id,
             role: "assistant",
-            content: replyContent,
-            createdAt: new Date().toISOString(),
+            content: result.reply.answer,
+            createdAt: result.reply.createdAt,
+            sources: result.reply.sources,
           },
         });
       } catch (error) {

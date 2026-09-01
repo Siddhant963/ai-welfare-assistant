@@ -15,7 +15,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:verify": "tsx scripts/verify-db.ts",
     "triage:verify": "tsx scripts/verify-triage.ts",
-    "safety:verify": "tsx scripts/verify-safety.ts"
+    "safety:verify": "tsx scripts/verify-safety.ts",
+    "knowledge:verify": "tsx scripts/verify-knowledge.ts"
   },
   "keywords": [],
   "author": "",

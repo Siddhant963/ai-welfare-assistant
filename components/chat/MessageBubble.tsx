@@ -25,6 +25,31 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         <p className="sr-only">{isStudent ? "You said:" : "Assistant said:"}</p>
         <p className="whitespace-pre-wrap">{message.content}</p>
+        {message.sources && message.sources.length > 0 && (
+          <div className="mt-2 border-t border-neutral-200 pt-2">
+            <p className="text-[11px] font-medium text-neutral-500">Sources</p>
+            <ul className="mt-1 space-y-0.5">
+              {message.sources.map((source) =>
+                source.url ? (
+                  <li key={source.id}>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[13px] text-indigo-700 underline underline-offset-2 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      {source.title}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={source.id} className="text-[13px] text-neutral-600">
+                    {source.title}
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+        )}
         <time
           dateTime={message.createdAt}
           className={`mt-1 block text-[11px] ${

@@ -52,6 +52,36 @@ export async function createStudentMessage(conversationId: string, content: stri
   });
 }
 
+export interface ReplySource {
+  id: string;
+  title: string;
+  url: string | null;
+}
+
+/**
+ * Persists the assistant's reply as a Message(role=ASSISTANT) — reusing the
+ * existing model rather than adding a new one for "assistant responses"
+ * (there's nothing about a reply that doesn't fit Message already). When
+ * sources exist, a readable footer is appended to the STORED content only,
+ * so the raw transcript is self-contained on its own; the live API
+ * response returns `sources` separately as clean structured data for the
+ * UI (see app/api/chat/route.ts) rather than making the client re-parse
+ * this text.
+ */
+export async function createAssistantMessage(
+  conversationId: string,
+  answer: string,
+  sources: ReplySource[]
+): Promise<Message> {
+  const footer = sources.length
+    ? "\n\nSources:\n" + sources.map((s) => (s.url ? `- ${s.title} (${s.url})` : `- ${s.title}`)).join("\n")
+    : "";
+
+  return prisma.message.create({
+    data: { conversationId, role: MessageRole.ASSISTANT, content: answer + footer },
+  });
+}
+
 /**
  * Persists every triage attempt, success or not — this is the audit trail
  * (see docs/database.md on why TriageResult is 1:N).
