@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { Disposition } from "../../../generated/prisma/client.ts";
 import { ChatRequestSchema } from "../../../lib/validation/chatRequest.ts";
-import { categoryToWire, dispositionToWire, urgencyToWire } from "../../../lib/validation/triageMapping.ts";
+import {
+  caseStatusToWire,
+  categoryToWire,
+  dispositionToWire,
+  urgencyToWire,
+} from "../../../lib/validation/triageMapping.ts";
 import { runTriage } from "../../../lib/ai/triage.ts";
 import { evaluateSafety } from "../../../lib/safety/rules.ts";
 import { buildReply } from "../../../lib/ai/reply.ts";
+import { ensureEscalationCase } from "../../../lib/db/cases.ts";
 import {
   createAssistantMessage,
   createStudentMessage,
@@ -62,6 +69,15 @@ export async function POST(request: Request) {
     });
     await persistTriageResult(studentMessage.id, triageOutcome, decision);
 
+    // Case creation happens before response generation, deliberately — the
+    // student is never told "this needs human support" before that's
+    // actually true. Idempotent and safe on retries (lib/db/cases.ts);
+    // never runs for HANDLE_NOW/ASK_CLARIFYING, and never assigns staff.
+    const escalationCase =
+      decision.disposition === Disposition.ESCALATE
+        ? await ensureEscalationCase({ conversationId: conversation.id, decision, message })
+        : null;
+
     // Knowledge retrieval + grounded response generation — a separate step
     // from triage/safety, receiving only the already-final decision. See
     // lib/ai/reply.ts for the four-way dispatch (immediate danger /
@@ -92,6 +108,14 @@ export async function POST(request: Request) {
         sources: reply.sources,
         createdAt: assistantMessage.createdAt.toISOString(),
       },
+      case: escalationCase
+        ? {
+            id: escalationCase.id,
+            status: caseStatusToWire(escalationCase.status),
+            urgency: urgencyToWire(escalationCase.urgency),
+            safeguarding: escalationCase.safeguarding,
+          }
+        : null,
     });
   } catch (error) {
     console.error("POST /api/chat failed:", error instanceof Error ? error.message : error);

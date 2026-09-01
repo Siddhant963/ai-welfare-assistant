@@ -49,6 +49,17 @@ export const ChatResponseSchema = z.object({
     ),
     createdAt: z.string(),
   }),
+  // Present only when decision.disposition === "escalate". Internal id is
+  // included for potential future staff-side use, but the student UI does
+  // not display it (see components/chat/MessageBubble.tsx).
+  case: z
+    .object({
+      id: z.string(),
+      status: z.enum(["new", "in_progress", "resolved"]),
+      urgency: z.enum(["low", "medium", "high", "critical"]),
+      safeguarding: z.boolean(),
+    })
+    .nullable(),
 });
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;

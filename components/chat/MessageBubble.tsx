@@ -24,6 +24,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         }`}
       >
         <p className="sr-only">{isStudent ? "You said:" : "Assistant said:"}</p>
+        {message.flag && (
+          <p
+            className={`mb-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+              message.flag === "emergency" ? "bg-amber-100 text-amber-900" : "bg-indigo-100 text-indigo-800"
+            }`}
+          >
+            {message.flag === "emergency" ? "Urgent — support flagged" : "Flagged for follow-up"}
+          </p>
+        )}
         <p className="whitespace-pre-wrap">{message.content}</p>
         {message.sources && message.sources.length > 0 && (
           <div className="mt-2 border-t border-neutral-200 pt-2">

@@ -92,6 +92,11 @@ export function useChat() {
 
       try {
         const result = await sendChatMessage({ student, conversationId, message: trimmed });
+        const flag = result.decision.emergencySupport
+          ? ("emergency" as const)
+          : result.decision.disposition === "escalate"
+            ? ("escalated" as const)
+            : undefined;
 
         dispatch({
           type: "SEND_MESSAGE_SUCCESS",
@@ -102,6 +107,7 @@ export function useChat() {
             content: result.reply.answer,
             createdAt: result.reply.createdAt,
             sources: result.reply.sources,
+            flag,
           },
         });
       } catch (error) {

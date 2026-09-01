@@ -1,4 +1,4 @@
-import { Category, Disposition, Urgency } from "../../generated/prisma/client.ts";
+import { Category, CaseStatus, Disposition, Urgency } from "../../generated/prisma/client.ts";
 import type { TriageOutput } from "./triage.ts";
 
 /**
@@ -71,3 +71,11 @@ export function fromValidatedTriage(data: ValidatedTriage): TriageOutput {
 export const categoryToWire = (category: Category) => CATEGORY_TO_WIRE[category];
 export const urgencyToWire = (urgency: Urgency) => URGENCY_TO_WIRE[urgency];
 export const dispositionToWire = (disposition: Disposition) => DISPOSITION_TO_WIRE[disposition];
+
+const CASE_STATUS_MAP: Record<"new" | "in_progress" | "resolved", CaseStatus> = {
+  new: CaseStatus.NEW,
+  in_progress: CaseStatus.IN_PROGRESS,
+  resolved: CaseStatus.RESOLVED,
+};
+const CASE_STATUS_TO_WIRE = invert(CASE_STATUS_MAP);
+export const caseStatusToWire = (status: CaseStatus) => CASE_STATUS_TO_WIRE[status];
