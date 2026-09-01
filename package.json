@@ -17,7 +17,8 @@
     "triage:verify": "tsx scripts/verify-triage.ts",
     "safety:verify": "tsx scripts/verify-safety.ts",
     "knowledge:verify": "tsx scripts/verify-knowledge.ts",
-    "escalation:verify": "tsx scripts/verify-escalation.ts"
+    "escalation:verify": "tsx scripts/verify-escalation.ts",
+    "staff:verify": "tsx scripts/verify-staff-dashboard.ts"
   },
   "keywords": [],
   "author": "",
