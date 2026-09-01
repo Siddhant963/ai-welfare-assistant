@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -22,7 +23,8 @@
     "claim:verify": "tsx scripts/verify-claim.ts",
     "probe": "tsx scripts/probe.ts",
     "assessment:verify": "tsx scripts/verify-assessment.ts",
-    "security:verify": "tsx scripts/verify-security.ts"
+    "security:verify": "tsx scripts/verify-security.ts",
+    "production:verify": "tsx scripts/verify-production.ts"
   },
   "keywords": [],
   "author": "",
