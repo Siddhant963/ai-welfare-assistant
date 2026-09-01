@@ -1,10 +1,10 @@
 /**
- * Phase 10 claim-workflow verification.
+ * Claim-workflow verification.
  *
- * Exercises lib/db/claimCase.ts (unmodified since Phase 2) directly against
- * the real Neon database, using the 2 real seeded Staff records — no fake
- * staff created. Creates its own throwaway Student/Conversation/Case
- * fixtures, cleans them up at the end. Exits non-zero if any check fails.
+ * Exercises lib/db/claimCase.ts directly against the real Neon database,
+ * using the 2 real seeded Staff records — no fake staff created. Creates
+ * its own throwaway Student/Conversation/Case fixtures, cleans them up at
+ * the end. Exits non-zero if any check fails.
  *
  * Run with: npm run claim:verify
  */
@@ -73,7 +73,7 @@ async function main() {
 
     const row = await prisma.case.findUniqueOrThrow({ where: { id: fixture1.case.id } });
     assert(row.claimedById === staffA.id, "claimedById must equal Staff A's id");
-    assert(row.status === CaseStatus.IN_PROGRESS, "status must move to IN_PROGRESS on claim (unchanged Phase 2 helper behavior)");
+    assert(row.status === CaseStatus.IN_PROGRESS, "status must move to IN_PROGRESS on claim");
     assert(row.claimedAt !== null, "claimedAt must be set");
   });
 
@@ -165,7 +165,7 @@ async function main() {
   }
   console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
   console.log(
-    "\nNote: TEST 10 (existing Phase 2 claim behavior) is covered by running `npm run db:verify` separately — see the Phase 10 report."
+    "\nNote: TEST 10 (existing claim behavior) is covered by running `npm run db:verify` separately."
   );
   if (failed.length > 0) process.exitCode = 1;
 }

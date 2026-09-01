@@ -1,15 +1,8 @@
 /**
- * Deterministic pattern detectors over the raw student message.
- *
- * These are intentionally curated, high-precision phrase patterns rather
- * than single keywords — a bare "help", "stress", "worried", or "bad"
- * must never trip a safety rule on its own (see scripts/verify-safety.ts's
- * "no false positives" checks). Each pattern targets a specific real-world
- * phrasing and is commented with what it's meant to catch, so the rule set
- * stays auditable and testable one pattern at a time.
- *
- * This module never calls the AI and never reads HTTP request objects —
- * pure string in, boolean out.
+ * Pattern detectors over the raw student message. Curated phrases rather
+ * than single keywords — a bare "help", "stress", or "worried" should
+ * never trip a safety rule on its own. Pure string in, boolean out; no AI
+ * calls, no HTTP.
  */
 
 interface NamedPattern {
@@ -57,7 +50,7 @@ const IMMEDIATE_DANGER_PATTERNS: NamedPattern[] = [
 const CRISIS_SAFEGUARDING_PATTERNS: NamedPattern[] = [
   {
     pattern: /\bdon'?t\s+(?:really\s+)?see\s+the\s+point\s+(?:of\s+(?:anything|living|going on))?\b/i,
-    note: "loss of sense of purpose — the assessment's canonical crisis phrase",
+    note: "loss of sense of purpose",
   },
   {
     pattern: /\bno\s+point\s+in\s+(?:anything|living|carrying on)\b/i,
@@ -84,7 +77,7 @@ const CRISIS_SAFEGUARDING_PATTERNS: NamedPattern[] = [
   },
   {
     pattern: /\bmental\s+health\s+(?:has\s+been\s+)?(?:going\s+downhill|getting\s+worse|deteriorat\w*)\b/i,
-    note: "explicit reported decline in mental health — catches the hidden-safeguarding test case even under a financial-sounding message",
+    note: "reported decline in mental health, even inside an otherwise financial-sounding message",
   },
   {
     pattern: /\bfeel(?:ing)?\s+(?:really\s+)?low\s+for\s+(?:weeks|days|a while|so long)\b/i,

@@ -1,5 +1,5 @@
 /**
- * Phase 5 triage pipeline verification.
+ * Triage pipeline verification.
  *
  * Exercises lib/ai/triage.ts and lib/db/chatRecords.ts directly (no running
  * HTTP server required). Creates its own throwaway fixtures (prefixed

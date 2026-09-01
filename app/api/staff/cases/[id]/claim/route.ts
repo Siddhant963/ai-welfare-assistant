@@ -31,10 +31,10 @@ async function loadCaseWithClaimant(caseId: string) {
  * POST /api/staff/cases/[id]/claim
  *
  * The browser identifies only WHICH case to claim — it never supplies who
- * is claiming it (see lib/staff/currentStaff.ts), and the only field this
- * endpoint can ever change is Case.claimedById (plus claimedAt/status,
- * both already owned by the unmodified Phase 2 lib/db/claimCase.ts).
- * urgency/safeguarding/category/conversationId are never touched here.
+ * is claiming it (see lib/staff/currentStaff.ts). The only fields this
+ * endpoint can change are Case.claimedById/claimedAt/status, all owned by
+ * lib/db/claimCase.ts; urgency/safeguarding/category/conversationId are
+ * never touched here.
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/staff/cases/[id]/claim">) {
   const { id: caseId } = await params;

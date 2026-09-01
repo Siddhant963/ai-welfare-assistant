@@ -69,10 +69,10 @@ export async function POST(request: Request) {
     });
     await persistTriageResult(studentMessage.id, triageOutcome, decision);
 
-    // Case creation happens before response generation, deliberately — the
-    // student is never told "this needs human support" before that's
-    // actually true. Idempotent and safe on retries (lib/db/cases.ts);
-    // never runs for HANDLE_NOW/ASK_CLARIFYING, and never assigns staff.
+    // Case creation happens before response generation, so the student is
+    // never told "this needs human support" before that's actually true.
+    // Idempotent and safe on retries (lib/db/cases.ts); never runs for
+    // HANDLE_NOW/ASK_CLARIFYING, and never assigns staff.
     const escalationCase =
       decision.disposition === Disposition.ESCALATE
         ? await ensureEscalationCase({ conversationId: conversation.id, decision, message })

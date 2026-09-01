@@ -2,17 +2,13 @@ import { prisma } from "../db/client.ts";
 import { Category } from "../../generated/prisma/client.ts";
 
 /**
- * SERVER-ONLY. Deterministic keyword/category retrieval over the fixed,
- * small (13-row) KnowledgeResource table — explicitly NOT semantic/vector
- * search. Every score is a small integer built from simple, inspectable
- * rules, so a result can always be explained ("this scored 6: +2 category
- * match, +4 for two title-word matches") and reproduced from the same
- * inputs every time.
+ * Deterministic keyword/category retrieval over the KnowledgeResource
+ * table — not semantic/vector search. Scores are small integers built from
+ * simple rules so a result can be explained and reproduced.
  *
- * We fetch all 13 rows and score them in application code rather than
- * pushing ranking into SQL — with a table this small that's the more
- * debuggable choice, not a performance concession. Callers only ever
- * receive the top `limit` (default 3), never the full set.
+ * Rows are scored in application code rather than in SQL; with a table
+ * this small that's more debuggable, not a performance tradeoff. Callers
+ * only ever get the top `limit` (default 3).
  */
 
 export interface RetrievedResource {
@@ -37,19 +33,14 @@ const CATEGORY_MATCH_SCORE = 2;
 const TITLE_MATCH_SCORE = 2;
 const CONTENT_MATCH_SCORE = 1;
 const SAFEGUARDING_PRIORITY_SCORE = 4;
-// Below this, a resource isn't "sufficiently relevant" — better to say so
-// honestly (see lib/ai/reply.ts's NO_KNOWLEDGE_FALLBACK) than to hand the
-// model a weak, coincidental keyword hit and hope it stays grounded.
+// Below this, a resource isn't relevant enough to hand to the model.
 const MIN_RELEVANCE_SCORE = 2;
 
-// These two are surfaced deterministically whenever the safety engine has
-// flagged safeguarding (crisis, not necessarily immediate danger) — a
-// business rule, not a keyword accident. A "feeling low for weeks" message
-// shares almost no literal words with an admin-toned service description,
-// so keyword scoring alone can't reliably surface the right resource here;
-// this makes sure it does. Emergency Services (999) is deliberately NOT
-// included — that's reserved for the fully separate immediate-danger
-// deterministic reply in lib/ai/reply.ts, not general crisis escalation.
+// Surfaced whenever safeguarding is flagged — a message like "feeling low
+// for weeks" shares almost no words with an admin-toned service
+// description, so keyword scoring alone won't reliably find these.
+// Emergency Services (999) is handled separately by the immediate-danger
+// reply in lib/ai/reply.ts, not general crisis escalation.
 const SAFEGUARDING_PRIORITY_TITLES = ["Wellbeing and Counselling", "Samaritans"];
 
 const STOPWORDS = new Set([
@@ -78,11 +69,8 @@ function scoreResource(
 ): number {
   let score = 0;
 
-  // OTHER is a catch-all with no real topical signal — awarding it a
-  // category-match bonus would mean an OTHER resource always clears the
-  // relevance bar for any OTHER-classified message, even one with zero
-  // genuine overlap (e.g. an off-topic question the AI couldn't place
-  // anywhere else). OTHER resources must earn their spot via keywords only.
+  // OTHER is a catch-all with no real topical signal, so it doesn't get a
+  // category bonus — those resources must earn their spot via keywords.
   if (resource.category === targetCategory && resource.category !== Category.OTHER) {
     score += CATEGORY_MATCH_SCORE;
   }

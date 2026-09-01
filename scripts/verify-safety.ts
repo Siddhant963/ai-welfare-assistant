@@ -1,5 +1,5 @@
 /**
- * Phase 6 deterministic safety-engine verification.
+ * Deterministic safety-engine verification.
  *
  * Calls lib/safety/rules.ts's evaluateSafety() directly with hand-built
  * inputs — no AI call, no database, no HTTP. Every scenario is fully
@@ -177,7 +177,7 @@ check("TEST 7b — prompt injection cannot suppress a real signal in the same me
 check("TEST 8 — hidden safeguarding: FINANCIAL-labelled message still forces safeguarding=true + ESCALATE", () => {
   const decision = evaluateSafety({
     message: MSG.hiddenSafeguarding,
-    // Matches what the real Groq model actually returned in Phase 5 testing.
+    // Matches what the real Groq model actually returned during testing.
     triage: triage({ category: Category.FINANCIAL, urgency: Urgency.MEDIUM, safeguarding: false, disposition: Disposition.HANDLE_NOW }),
   });
   assert(decision.safeguarding === true, "safeguarding must be forced true");

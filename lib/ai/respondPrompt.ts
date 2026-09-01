@@ -1,12 +1,9 @@
 import type { RetrievedResource } from "../knowledge/retrieve.ts";
 
 /**
- * SERVER-ONLY prompts for the response-generation call. Deliberately
- * separate from lib/ai/triagePrompt.ts — this model is never asked to
- * classify, and the triage model is never asked to write prose. Each
- * prompt does exactly one job (see docs/database.md-style separation of
- * concerns: TRIAGE / SAFETY / RETRIEVAL / RESPONSE GENERATION are four
- * distinct steps, not one giant prompt).
+ * Prompts for response generation, kept separate from triagePrompt.ts —
+ * this model is never asked to classify, and the triage model is never
+ * asked to write prose.
  */
 
 function formatResources(resources: RetrievedResource[]): string {

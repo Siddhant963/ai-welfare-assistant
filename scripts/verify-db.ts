@@ -1,5 +1,5 @@
 /**
- * Phase 2 database verification.
+ * Database verification.
  *
  * Creates its own throwaway fixtures (prefixed "verify-"), exercises the
  * schema's real capabilities against the live database, then deletes what
@@ -190,8 +190,8 @@ async function main() {
   await check("Enums reject invalid values at the database level", async () => {
     let enumRejected = false;
     try {
-      // Bypass Prisma's TypeScript types deliberately, to prove the
-      // constraint lives in Postgres itself and not only in the TS layer.
+      // Bypass Prisma's TypeScript types to prove the constraint lives in
+      // Postgres itself and not only in the TS layer.
       await prisma.$executeRawUnsafe(
         `UPDATE "Case" SET "status" = 'NOT_A_REAL_STATUS' WHERE "id" = $1`,
         caseId

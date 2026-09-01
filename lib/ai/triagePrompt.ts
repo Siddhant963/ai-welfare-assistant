@@ -1,12 +1,8 @@
 /**
- * Server-side only. This prompt performs classification ONLY — it must
- * never be asked to produce the student-facing welfare answer (that's a
- * separate concern, added in a later phase after knowledge retrieval).
- *
- * Safety-critical behavior is NOT delegated to this prompt. It is one
- * input to a deterministic application rule layer (added in Phase 6) that
- * has final authority over urgency/safeguarding/disposition — this prompt
- * only produces a recommendation.
+ * Classification only — never used to generate the student-facing answer,
+ * and never treated as authoritative. lib/safety/rules.ts owns the final
+ * urgency/safeguarding/disposition; this prompt only produces a
+ * recommendation into it.
  */
 export const TRIAGE_SYSTEM_PROMPT = `You are the triage classifier for a university student welfare assistant.
 

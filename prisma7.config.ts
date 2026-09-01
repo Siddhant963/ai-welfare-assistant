@@ -13,7 +13,7 @@ export default defineConfig({
     // The installed @prisma/config (7.10.0) only supports `url` and
     // `shadowDatabaseUrl` here — no `directUrl` field exists in this
     // version's API. Migrations run through DATABASE_URL directly; this was
-    // verified working against Neon's pooled connection in Phase 2.
+    // verified working against Neon's pooled connection.
     url: process.env["DATABASE_URL"],
   },
 });

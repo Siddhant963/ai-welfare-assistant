@@ -41,7 +41,7 @@ export function StatusBadge({ status }: { status: CaseStatus }) {
   return <span className={`${BADGE_BASE} ${STATUS_STYLES[status]}`}>{STATUS_LABELS[status]}</span>;
 }
 
-/** Read-only display — Phase 9 has no claim mutation, see lib/db/claimCase.ts (unchanged). */
+/** Read-only display — claiming happens in ClaimCaseButton.tsx, not here. */
 export function ClaimBadge({ claimedByName }: { claimedByName: string | null }) {
   if (!claimedByName) {
     return <span className={`${BADGE_BASE} border border-amber-300 bg-amber-50 text-amber-800`}>Unclaimed</span>;

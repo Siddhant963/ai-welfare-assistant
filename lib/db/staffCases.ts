@@ -3,9 +3,8 @@ import { CaseStatus, Urgency } from "../../generated/prisma/client.ts";
 import type { Category, Disposition, MessageRole, Prisma } from "../../generated/prisma/client.ts";
 
 /**
- * SERVER-ONLY. Read-only data access for the staff dashboard (Phase 9).
- * No mutations live here — claiming is lib/db/claimCase.ts (Phase 2,
- * unchanged) and case creation is lib/db/cases.ts (Phase 8, unchanged).
+ * Read-only data access for the staff dashboard. No mutations here —
+ * claiming lives in lib/db/claimCase.ts, case creation in lib/db/cases.ts.
  * Never calls the AI.
  */
 
@@ -73,17 +72,14 @@ function buildWhere(filter: CaseFilter, search?: string): Prisma.CaseWhereInput 
 }
 
 /**
- * Queue ordering — deterministic application logic, never AI-decided:
- *   1. urgency DESC — Postgres orders enums by their declaration order in
- *      the schema (LOW, MEDIUM, HIGH, CRITICAL), so `desc` naturally yields
- *      CRITICAL first. This is standard, documented Postgres enum
- *      behavior, not a coincidence — see prisma/schema.prisma.
- *   2. safeguarding DESC — true (1) sorts before false (0).
+ * Queue ordering:
+ *   1. urgency DESC — Postgres sorts enums by declaration order (LOW,
+ *      MEDIUM, HIGH, CRITICAL), so `desc` puts CRITICAL first.
+ *   2. safeguarding DESC — true before false.
  *   3. createdAt DESC — newest first within the same priority tier.
  *
  * One query for the page of rows, one COUNT for pagination, run in
- * parallel — not one query per case (see docs/staff-dashboard.md-style
- * note in the Phase 9 report on why this isn't an N+1 pattern).
+ * parallel — not one query per case.
  */
 export async function listCases(input: {
   filter?: CaseFilter;

@@ -42,8 +42,8 @@ async function seedStaff() {
 /**
  * The 13 supplied knowledge-base topics, mapped onto the shared Category
  * enum. A few (IT help, careers, disability support) don't map cleanly onto
- * a 6-value enum — the mapping choice for each is a deliberate MVP call,
- * documented in docs/database.md, not something inferred here.
+ * a 6-value enum — the mapping choice for each is documented in
+ * docs/database.md.
  */
 async function seedKnowledgeResources() {
   await prisma.knowledgeResource.createMany({

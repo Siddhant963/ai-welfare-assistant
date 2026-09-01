@@ -59,14 +59,10 @@ export interface ReplySource {
 }
 
 /**
- * Persists the assistant's reply as a Message(role=ASSISTANT) — reusing the
- * existing model rather than adding a new one for "assistant responses"
- * (there's nothing about a reply that doesn't fit Message already). When
- * sources exist, a readable footer is appended to the STORED content only,
- * so the raw transcript is self-contained on its own; the live API
- * response returns `sources` separately as clean structured data for the
- * UI (see app/api/chat/route.ts) rather than making the client re-parse
- * this text.
+ * Persists the assistant's reply as a Message(role=ASSISTANT). When sources
+ * exist, a readable footer is appended to the stored content so the raw
+ * transcript is self-contained; the API response returns `sources`
+ * separately as structured data for the UI.
  */
 export async function createAssistantMessage(
   conversationId: string,
@@ -83,16 +79,12 @@ export async function createAssistantMessage(
 }
 
 /**
- * Persists every triage attempt, success or not — this is the audit trail
- * (see docs/database.md on why TriageResult is 1:N).
+ * Persists every triage attempt, success or not — see docs/database.md for
+ * why TriageResult is 1:N.
  *
- * TriageResult's typed columns (category/urgency/safeguarding/disposition)
- * hold the FINAL, safety-engine-corrected decision — the thing downstream
- * code (case creation, staff dashboard) should actually query. The
- * original, unmodified AI recommendation is never discarded: it's kept
- * verbatim in `rawOutput.ai` specifically so a corrected decision can
- * always be audited against what the AI actually said (rawOutput.safetyEngine
- * records why/whether it was overridden). See lib/safety/rules.ts.
+ * The typed columns hold the final, safety-engine-corrected decision. The
+ * original AI recommendation is kept verbatim in `rawOutput.ai`;
+ * `rawOutput.safetyEngine` records whether/why it was overridden.
  */
 export async function persistTriageResult(
   messageId: string,

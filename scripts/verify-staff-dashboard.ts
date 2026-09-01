@@ -1,5 +1,5 @@
 /**
- * Phase 9 staff dashboard verification.
+ * Staff dashboard verification.
  *
  * Tests the server-side data functions directly (lib/db/staffCases.ts) —
  * there is no browser automation in this environment, so visual rendering
@@ -267,7 +267,7 @@ async function main() {
     }
   });
 
-  await check("TEST 17 — existing atomic claim helper still works against a Phase 9 fixture case", async () => {
+  await check("TEST 17 — existing atomic claim helper still works against a dashboard fixture case", async () => {
     const staff = await prisma.staff.findMany({ take: 2 });
     assert(staff.length >= 2, "expected at least 2 seeded Staff records");
 

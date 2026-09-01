@@ -1,5 +1,5 @@
 // Prisma schema for the AI Welfare Assistant
-// Phase 2: database architecture only. No application code in this file.
+// Database architecture only. No application code in this file.
 // See docs/database.md for the reasoning behind these modelling decisions.
 
 generator client {
@@ -92,8 +92,8 @@ model Message {
   createdAt      DateTime    @default(now())
 
   conversation  Conversation   @relation(fields: [conversationId], references: [id])
-  // Deliberately 1:N, not 1:1 — a message may be re-triaged after a
-  // clarification round-trip, and every attempt is kept for audit history.
+  // 1:N, not 1:1 — a message may be re-triaged after a clarification
+  // round-trip, and every attempt is kept for audit history.
   triageResults TriageResult[]
 
   @@index([conversationId, createdAt])
@@ -123,8 +123,8 @@ model TriageResult {
 model Case {
   id             String     @id @default(cuid())
   conversationId String     @unique
-  // Final, application-decided state — deliberately separate from
-  // TriageResult so a case can never inherit a raw/unvalidated AI value.
+  // Final, application-decided state — kept separate from TriageResult so
+  // a case can never inherit a raw/unvalidated AI value.
   summary        String
   category       Category
   urgency        Urgency

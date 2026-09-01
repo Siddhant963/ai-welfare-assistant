@@ -19,7 +19,10 @@
     "knowledge:verify": "tsx scripts/verify-knowledge.ts",
     "escalation:verify": "tsx scripts/verify-escalation.ts",
     "staff:verify": "tsx scripts/verify-staff-dashboard.ts",
-    "claim:verify": "tsx scripts/verify-claim.ts"
+    "claim:verify": "tsx scripts/verify-claim.ts",
+    "probe": "tsx scripts/probe.ts",
+    "assessment:verify": "tsx scripts/verify-assessment.ts",
+    "security:verify": "tsx scripts/verify-security.ts"
   },
   "keywords": [],
   "author": "",

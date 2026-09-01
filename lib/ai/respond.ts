@@ -15,15 +15,13 @@ export type RespondOutcome =
   | { status: "invalid_output"; message: string; rawOutput: Prisma.InputJsonValue };
 
 /**
- * Pure — no network, no DB. Parses and validates a raw model response
- * string against the schema, then verifies every cited sourceId actually
- * exists in `allowedResourceIds` (the resources that were really retrieved
- * and handed to the model). ANY unknown id invalidates the whole response
- * — see docs on why this is a full reject, not a silent filter-and-keep.
+ * Pure — no network, no DB. Validates a raw model response against the
+ * schema, then checks every cited sourceId against `allowedResourceIds`
+ * (what was actually retrieved and handed to the model). Any unknown id
+ * rejects the whole response rather than silently dropping it.
  *
- * Factored out from generateGroundedResponse() specifically so source-
- * integrity behavior can be unit-tested with a fabricated model response,
- * without depending on the live AI actually hallucinating on cue.
+ * Separated out from generateGroundedResponse() so this can be tested with
+ * a fabricated response, without needing the live AI to hallucinate on cue.
  */
 export function validateGroundedResponse(rawText: string, allowedResourceIds: string[]): RespondOutcome {
   let parsedJson: unknown;
@@ -91,11 +89,11 @@ export async function generateGroundedResponse(input: {
     );
     rawText = completion.choices[0]?.message?.content ?? "";
   } catch (error) {
-    const message2 = error instanceof Error ? error.message : "Unknown AI provider error";
-    console.error("Response generation AI call failed:", message2);
+    const errorMessage = error instanceof Error ? error.message : "Unknown AI provider error";
+    console.error("Response generation AI call failed:", errorMessage);
     return {
       status: "provider_error",
-      message: message2,
+      message: errorMessage,
       rawOutput: { stage: "provider_error", error: "AI provider call failed" },
     };
   }

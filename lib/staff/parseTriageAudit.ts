@@ -1,17 +1,15 @@
 /**
- * Defensive parser for TriageResult.rawOutput — a JSON column, not
- * statically typed by Prisma, and the real data spans two eras:
+ * Parser for TriageResult.rawOutput — a JSON column with two shapes in the
+ * data:
  *
- *   - Phase 6+: `{ ai: {...}, safetyEngine: { overriddenAi, safetyFlags,
- *     reasons, emergencySupport } }` — the AI's original recommendation
- *     kept separate from the safety engine's audit trail.
- *   - Phase 2 seed data (predates the safety engine): a flat object like
- *     `{ category, urgency, safeguarding, disposition, confidence }` —
- *     the raw object itself IS the AI recommendation, with no separate
- *     safety-engine audit (that layer didn't exist yet).
+ *   - `{ ai: {...}, safetyEngine: {...} }` — the AI's recommendation kept
+ *     separate from the safety engine's audit trail.
+ *   - A flat object (`{ category, urgency, safeguarding, disposition }`)
+ *     from seed data written before the safety engine existed — the raw
+ *     object itself is the AI recommendation, with no separate audit.
  *
- * Never throws on unexpected shapes — this is display-only, staff-facing
- * audit context, not something that should ever break the case detail page.
+ * Never throws on an unexpected shape — this is display-only and shouldn't
+ * break the case detail page.
  */
 
 export interface AiRecommendationView {

@@ -1,5 +1,5 @@
 /**
- * Phase 7 knowledge retrieval + grounded response verification.
+ * Knowledge retrieval + grounded response verification.
  *
  * Exercises the real pipeline (lib/knowledge/retrieve.ts, lib/ai/respond.ts,
  * lib/ai/reply.ts) against the actual seeded 13 KnowledgeResource records
@@ -195,9 +195,9 @@ async function main() {
       assert(reply.sources.length === 0, "clarification must not retrieve anything");
     }
     // If the live AI or safety engine judged this differently this run, that's
-    // a triage/safety-layer concern already covered by Phase 5/6 verification,
-    // not a knowledge-layer one — this test only asserts the clarification
-    // path's own behavior when it does fire.
+    // a triage/safety-layer concern already covered by triage/safety
+    // verification, not a knowledge-layer one — this test only asserts the
+    // clarification path's own behavior when it does fire.
   });
 
   // --- TEST 7: prompt injection ---

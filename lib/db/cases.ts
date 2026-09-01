@@ -4,18 +4,13 @@ import type { Case } from "../../generated/prisma/client.ts";
 import type { FinalDecision } from "../safety/rules.ts";
 
 /**
- * SERVER-ONLY. Turns an ESCALATE FinalDecision into the operational staff
- * workflow record. Never calls the AI — everything here comes from the
- * already-validated, already-safety-checked decision the caller supplies.
+ * Turns an ESCALATE decision into the staff workflow record. Never calls
+ * the AI — everything here comes from the caller's already-validated
+ * decision.
  *
- * TriageResult (see lib/db/chatRecords.ts) stays the audit answer to
- * "what did the AI/safety engine decide, and why" — every attempt, kept
- * forever. Case answers a different question, "what currently needs a
- * human," and there is at most one per conversation (enforced by the
- * existing @unique constraint on Case.conversationId — not redesigned
- * here). This module keeps that separation: it only ever reads
- * category/urgency/safeguarding off FinalDecision, never duplicates
- * TriageResult's rawOutput/reasons audit trail into Case.
+ * TriageResult (lib/db/chatRecords.ts) answers "what did the AI/safety
+ * engine decide" for every attempt. Case answers "what currently needs a
+ * human," one per conversation (Case.conversationId is unique).
  */
 
 const URGENCY_ORDER: Urgency[] = [Urgency.LOW, Urgency.MEDIUM, Urgency.HIGH, Urgency.CRITICAL];
@@ -37,16 +32,10 @@ function buildCaseSummary(decision: FinalDecision, message: string): string {
 }
 
 /**
- * Applies the "never downgrade" rule: once a case reflects a stronger
- * safety state, a later, weaker decision can never soften it.
- *   - safeguarding: true can never become false.
- *   - urgency: only ever moves up the LOW→MEDIUM→HIGH→CRITICAL scale.
- *   - category and status are deliberately left untouched here — category
- *     is "why this was first escalated" (changing it later could confuse
- *     a staff member already reviewing it under the original topic), and
- *     status transitions (claim/resolve) belong to staff, never to this
- *     automatic path. See docs note in the Phase 8 report on `summary`
- *     being write-once for the same reason.
+ * A case's safety state is never downgraded by a later, weaker decision:
+ * safeguarding only goes false->true, urgency only moves up the scale.
+ * Category and status are left untouched — category is why the case was
+ * first escalated, and status changes belong to staff, not this path.
  */
 function strongestSafetyState(current: Case, decision: FinalDecision) {
   return {
@@ -84,8 +73,7 @@ export async function ensureEscalationCase(input: EnsureEscalationCaseInput): Pr
           urgency: decision.urgency,
           safeguarding: decision.safeguarding,
           status: CaseStatus.NEW,
-          // claimedById intentionally omitted — defaults to null. No
-          // automatic staff assignment happens here or anywhere in Phase 8.
+          // claimedById omitted — defaults to null. No automatic staff assignment.
         },
       });
     } catch (error) {

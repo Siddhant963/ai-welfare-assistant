@@ -4,24 +4,18 @@ import { retrieveKnowledge, type RetrievedResource } from "../knowledge/retrieve
 import { generateGroundedResponse } from "./respond.ts";
 
 /**
- * SERVER-ONLY orchestrator. Takes the safety engine's already-final
- * decision and decides how to respond — it never re-decides urgency,
- * safeguarding, or disposition itself. Four distinct paths, matching the
- * architecture's four separated concerns (triage / safety / retrieval /
- * response generation are never combined into one prompt):
+ * Turns a safety-engine decision into a student-facing reply. Never
+ * re-decides urgency/safeguarding/disposition — only picks how to respond:
  *
- *   1. Immediate danger  -> fully deterministic, no retrieval, no AI call.
- *   2. Ask clarifying     -> fully deterministic, no retrieval, no AI call.
- *   3. Escalate (other)   -> retrieve, then generate an acknowledgment.
- *   4. Handle now          -> retrieve, then generate a grounded answer.
+ *   1. Immediate danger -> deterministic, no retrieval, no AI call.
+ *   2. Ask clarifying    -> deterministic, no retrieval, no AI call.
+ *   3. Escalate (other)  -> retrieve, then generate an acknowledgment.
+ *   4. Handle now         -> retrieve, then generate a grounded answer.
  *
- * Paths 3/4 skip the AI call entirely when retrieval finds nothing
- * sufficiently relevant (see lib/knowledge/retrieve.ts) — there is nothing
- * for the model to ground on, so asking it to write anyway is exactly the
- * "invent when knowledge is missing" failure mode this phase exists to
- * prevent. A resource list is still shown deterministically if retrieval
- * succeeded but the AI call itself failed or returned invalid output —
- * that's real, verified information, just not AI-summarised.
+ * Paths 3/4 skip the AI call when retrieval finds nothing relevant —
+ * there's nothing to ground an answer on. If retrieval succeeds but the AI
+ * call fails, the retrieved resources are still shown, just without an
+ * AI-written summary.
  */
 
 export interface Source {
@@ -35,9 +29,7 @@ export interface ReplyResult {
   sources: Source[];
 }
 
-// Exported (not just used internally) so tests can assert exact equality —
-// that's the proof a deterministic, no-AI-call branch actually fired,
-// rather than the AI coincidentally producing similar-sounding text.
+// Exported so tests can assert on the exact string.
 export const CLARIFYING_QUESTION =
   "I can help. Is this about academic support, money/finance, housing, immigration, or your wellbeing?";
 

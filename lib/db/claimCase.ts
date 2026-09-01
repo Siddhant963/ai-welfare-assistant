@@ -6,12 +6,9 @@ export type ClaimCaseResult =
   | { claimed: false; reason: "not_found" | "already_claimed" };
 
 /**
- * Atomically claims a case for a staff member.
- *
- * Implemented as a single conditional UPDATE (`WHERE id = ... AND claimedById
- * IS NULL`) rather than a read-then-write, so two staff members racing to
- * claim the same case can never both succeed — the database guarantees only
- * one UPDATE affects a row. This is deliberately NOT select-then-update.
+ * Atomically claims a case for a staff member. A single conditional UPDATE
+ * (`WHERE id = ... AND claimedById IS NULL`), not select-then-update, so
+ * two staff racing to claim the same case can never both succeed.
  */
 export async function claimCase(caseId: string, staffId: string): Promise<ClaimCaseResult> {
   const result = await prisma.case.updateMany({

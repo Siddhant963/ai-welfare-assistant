@@ -1,5 +1,5 @@
 /**
- * Phase 8 escalation + case management verification.
+ * Escalation + case management verification.
  *
  * Exercises the real pipeline (lib/db/cases.ts's ensureEscalationCase,
  * wired the same way app/api/chat/route.ts wires it) against the real
