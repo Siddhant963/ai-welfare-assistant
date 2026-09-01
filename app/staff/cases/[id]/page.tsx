@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCaseDetail } from "../../../../lib/db/staffCases.ts";
 import { CATEGORY_LABELS, formatDateTime } from "../../../../lib/staff/labels.ts";
 import { ClaimBadge, SafeguardingBadge, StatusBadge, UrgencyBadge } from "../../../../components/staff/Badges.tsx";
+import { ClaimCaseButton } from "../../../../components/staff/ClaimCaseButton.tsx";
 import { SafetySummary } from "../../../../components/staff/SafetySummary.tsx";
 import { ConversationView } from "../../../../components/staff/ConversationView.tsx";
 
@@ -56,6 +57,11 @@ export default async function CaseDetailPage({ params }: PageProps<"/staff/cases
           <StatusBadge status={detail.status} />
           <ClaimBadge claimedByName={detail.claimedBy?.name ?? null} />
         </div>
+        {!detail.claimedBy && (
+          <div className="mt-3">
+            <ClaimCaseButton caseId={detail.id} />
+          </div>
+        )}
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
           <div>
             <dt className="text-neutral-500">Category</dt>
