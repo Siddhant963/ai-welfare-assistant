@@ -2,6 +2,7 @@ import { Disposition } from "../../generated/prisma/client.ts";
 import type { FinalDecision } from "../safety/rules.ts";
 import { retrieveKnowledge, type RetrievedResource } from "../knowledge/retrieve.ts";
 import { generateGroundedResponse } from "./respond.ts";
+import type { ConversationTurn } from "../db/chatRecords.ts";
 
 /**
  * Turns a safety-engine decision into a student-facing reply. Never
@@ -34,7 +35,7 @@ export const CLARIFYING_QUESTION =
   "I can help. Is this about academic support, money/finance, housing, immigration, or your wellbeing?";
 
 export const NO_KNOWLEDGE_FALLBACK =
-  "I don't have enough verified information to answer that accurately yet. I can help you identify the right support route or connect you with a staff member.";
+  "I don't have specific guidance on that. Could you tell me more about what's going on, so I can help or connect you with a staff member if needed?";
 
 export const ESCALATION_FALLBACK =
   "Thank you for sharing this. This needs a closer look than I can give automatically, so I've flagged it for a member of staff to follow up with you directly.";
@@ -44,8 +45,12 @@ function toSources(resources: RetrievedResource[], ids?: string[]): Source[] {
   return selected.map((r) => ({ id: r.id, title: r.title, url: r.url }));
 }
 
-export async function buildReply(input: { message: string; decision: FinalDecision }): Promise<ReplyResult> {
-  const { message, decision } = input;
+export async function buildReply(input: {
+  message: string;
+  decision: FinalDecision;
+  history?: ConversationTurn[];
+}): Promise<ReplyResult> {
+  const { message, decision, history = [] } = input;
 
   // Path 1 — immediate danger. Application-owned emergency metadata only;
   // the AI is never asked to invent or restate emergency numbers.
@@ -88,6 +93,7 @@ export async function buildReply(input: { message: string; decision: FinalDecisi
     message,
     mode: isEscalation ? "escalate" : "handle_now",
     resources,
+    history,
   });
 
   if (outcome.status !== "success") {

@@ -3,6 +3,7 @@ import { getGroqClient, GROQ_MODEL } from "./groqClient.ts";
 import { TRIAGE_SYSTEM_PROMPT, buildTriageUserMessage } from "./triagePrompt.ts";
 import { TriageOutputSchema } from "../validation/triage.ts";
 import { toValidatedTriage, type ValidatedTriage } from "../validation/triageMapping.ts";
+import type { ConversationTurn } from "../db/chatRecords.ts";
 
 const TRIAGE_TIMEOUT_MS = 15_000;
 // Cap how much raw model text we ever persist on a failure path — this is
@@ -19,7 +20,7 @@ export type TriageOutcome =
   | { status: "provider_error"; message: string; rawOutput: Prisma.InputJsonValue }
   | { status: "invalid_output"; message: string; rawOutput: Prisma.InputJsonValue };
 
-export async function runTriage(studentMessage: string): Promise<TriageOutcome> {
+export async function runTriage(studentMessage: string, history: ConversationTurn[] = []): Promise<TriageOutcome> {
   let rawText: string;
 
   try {
@@ -29,7 +30,7 @@ export async function runTriage(studentMessage: string): Promise<TriageOutcome> 
         model: GROQ_MODEL,
         messages: [
           { role: "system", content: TRIAGE_SYSTEM_PROMPT },
-          { role: "user", content: buildTriageUserMessage(studentMessage) },
+          { role: "user", content: buildTriageUserMessage(studentMessage, history) },
         ],
         response_format: { type: "json_object" },
         temperature: 0,

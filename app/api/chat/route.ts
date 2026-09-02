@@ -15,6 +15,7 @@ import {
   createAssistantMessage,
   createStudentMessage,
   findOrCreateStudent,
+  getRecentMessages,
   persistTriageResult,
   resolveConversation,
 } from "../../../lib/db/chatRecords.ts";
@@ -55,13 +56,19 @@ export async function POST(request: Request) {
     }
     const { conversation } = resolved;
 
+    // Fetched before the new message is saved, so it's naturally just the
+    // prior turns — lets triage and response generation resolve references
+    // like "it" back to what was just discussed, without an open-ended
+    // memory system (bounded in count and length, see getRecentMessages).
+    const history = await getRecentMessages(conversation.id);
+
     const studentMessage = await createStudentMessage(conversation.id, message);
 
     // AI triage is a recommendation only. The safety engine — not the AI —
     // owns the final urgency/safeguarding/disposition decision, and it runs
     // its own independent pattern checks against the raw message regardless
     // of whether AI triage succeeded (evaluateSafety accepts triage: null).
-    const triageOutcome = await runTriage(message);
+    const triageOutcome = await runTriage(message, history);
     const decision = evaluateSafety({
       message,
       triage: triageOutcome.status === "success" ? triageOutcome.data : null,
@@ -83,7 +90,7 @@ export async function POST(request: Request) {
     // lib/ai/reply.ts for the four-way dispatch (immediate danger /
     // clarify / escalate / handle now) and why each path does or doesn't
     // call the AI at all.
-    const reply = await buildReply({ message, decision });
+    const reply = await buildReply({ message, decision, history });
     const assistantMessage = await createAssistantMessage(conversation.id, reply.answer, reply.sources);
 
     return NextResponse.json({

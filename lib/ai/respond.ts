@@ -3,6 +3,7 @@ import { getGroqClient, GROQ_MODEL } from "./groqClient.ts";
 import { buildEscalationSystemPrompt, buildHandleNowSystemPrompt, buildResponseUserMessage } from "./respondPrompt.ts";
 import { GroundedResponseSchema } from "../validation/response.ts";
 import type { RetrievedResource } from "../knowledge/retrieve.ts";
+import type { ConversationTurn } from "../db/chatRecords.ts";
 
 const RESPONSE_TIMEOUT_MS = 15_000;
 const RAW_TEXT_PREVIEW_LENGTH = 1000;
@@ -64,8 +65,9 @@ export async function generateGroundedResponse(input: {
   message: string;
   mode: ResponseMode;
   resources: RetrievedResource[];
+  history?: ConversationTurn[];
 }): Promise<RespondOutcome> {
-  const { message, mode, resources } = input;
+  const { message, mode, resources, history = [] } = input;
   const systemPrompt =
     mode === "handle_now" ? buildHandleNowSystemPrompt(resources) : buildEscalationSystemPrompt(resources);
 
@@ -77,7 +79,7 @@ export async function generateGroundedResponse(input: {
         model: GROQ_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: buildResponseUserMessage(message) },
+          { role: "user", content: buildResponseUserMessage(message, history) },
         ],
         response_format: { type: "json_object" },
         temperature: 0.2,

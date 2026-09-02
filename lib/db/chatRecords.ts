@@ -52,6 +52,37 @@ export async function createStudentMessage(conversationId: string, content: stri
   });
 }
 
+export interface ConversationTurn {
+  role: MessageRole;
+  content: string;
+}
+
+const MAX_HISTORY_MESSAGES = 6;
+const MAX_HISTORY_CHARS = 300;
+
+/**
+ * Last few turns of a conversation, oldest first, so the AI can resolve
+ * references like "it" or "that" back to what was just discussed. Bounded
+ * in count and per-message length — this is recent context, not a
+ * transcript archive.
+ */
+export async function getRecentMessages(
+  conversationId: string,
+  limit: number = MAX_HISTORY_MESSAGES
+): Promise<ConversationTurn[]> {
+  const messages = await prisma.message.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: { role: true, content: true },
+  });
+
+  return messages.reverse().map((m) => ({
+    role: m.role,
+    content: m.content.length > MAX_HISTORY_CHARS ? `${m.content.slice(0, MAX_HISTORY_CHARS)}…` : m.content,
+  }));
+}
+
 export interface ReplySource {
   id: string;
   title: string;
