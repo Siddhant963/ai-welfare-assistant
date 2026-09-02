@@ -126,6 +126,65 @@ afterward — safe to run against a real database. `assessment:verify`,
 production server and make real Groq calls, so they're slower and subject
 to Groq's own rate limits under heavy repeated use.
 
+`npm run probe` is the mandatory two-check gate (prompt injection must
+not resolve/deprioritize a case; a crisis message must escalate). It uses
+a **stubbed AI response**, not a live Groq call — it feeds a hand-written
+classification straight into the real, unmodified safety engine and
+writes a real row to the database, so it's checking the actual
+validation and rule logic, just without depending on network access or
+model availability. Everything downstream of triage that scripts like
+`triage:verify` and `assessment:verify` exercise does call the real Groq
+API.
+
+## How the Assistant Decides: Handle, Clarify, or Escalate
+
+Every student message goes through two steps. First, the AI model reads
+it and suggests a category, an urgency, and whether it looks safe to
+answer directly, needs a clarifying question, or should go to a staff
+member. Second — and this is the part that actually decides the
+outcome — a set of fixed, code-only rules independently checks the raw
+message text on its own, regardless of what the AI said. If those rules
+spot crisis language, an indication of immediate danger, or an
+individual immigration situation, they force an escalation no matter
+what the AI recommended. The AI's read is only ever a starting point;
+the rules make the final call, and if the AI is unavailable or returns
+something unusable, the system defaults to escalating rather than
+guessing. See `lib/safety/rules.ts` for the actual rules.
+
+## Scale: 50 Organisations, 10,000 Conversations a Day
+
+This is a design question the assessment asks, not something built here.
+The current schema is single-tenant — there's no `Organization` or
+`Employee` entity, so there's nothing to scope multiple institutions by.
+What was actually tested: a temporary 500-row synthetic case fixture
+showed the staff dashboard's queue, filter, metrics, detail, and claim
+queries stay bounded (not N+1) and index-backed at that size — not that
+the system handles 10,000 conversations a day in production, which
+hasn't been demonstrated. To genuinely support multiple organisations,
+the natural extension is an `Organization` model plus an
+`organizationId` foreign key on `Student` and `Staff`, with every
+case-queue query gaining a matching `WHERE` clause backed by a composite
+index — an incremental change following the existing filter/index
+pattern, not a redesign. Full write-up: `docs/assessment-evidence.md`
+§Scale.
+
+## Production Privacy and Safety
+
+Handling real student welfare data would require several things this
+project doesn't build: real staff authentication (session-based login,
+most likely against the university's existing identity provider) in
+place of the `STAFF_DEV_ID` env var; a defined retention policy — the
+schema has no soft-deletes or expiry, so conversations persist
+indefinitely today; audit logging for staff access to case records,
+which doesn't currently exist beyond who claimed a case; and a clear
+policy on the fact that every student message is sent to Groq (a
+third-party AI provider) for triage and response generation — a real
+deployment would need a data processing agreement with that provider and
+to disclose this to students. Encryption in transit is already the
+default for both the database and Groq connections; encryption at rest
+is the database host's responsibility, not something this application
+manages.
+
 ## Staff Authentication Limitation
 
 **There is no real staff authentication.** `STAFF_DEV_ID` (a server-only
