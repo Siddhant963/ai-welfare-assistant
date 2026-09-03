@@ -38,8 +38,7 @@ export default async function StaffDashboardPage({ searchParams }: PageProps<"/s
       <header className="mb-6">
         <h1 className="text-xl font-semibold text-neutral-900">Welfare Support — Case Queue</h1>
         <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Authentication and authorization are intentionally deferred to a later phase — this view is not yet
-          access-controlled.
+          Authentication is not implemented yet — this view has no access control.
         </p>
       </header>
 

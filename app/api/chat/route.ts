@@ -56,10 +56,9 @@ export async function POST(request: Request) {
     }
     const { conversation } = resolved;
 
-    // Fetched before the new message is saved, so it's naturally just the
-    // prior turns — lets triage and response generation resolve references
-    // like "it" back to what was just discussed, without an open-ended
-    // memory system (bounded in count and length, see getRecentMessages).
+    // Fetched before the new message is saved, so it's just the prior
+    // turns — lets triage and response generation resolve references like
+    // "it" back to what was just discussed.
     const history = await getRecentMessages(conversation.id);
 
     const studentMessage = await createStudentMessage(conversation.id, message);

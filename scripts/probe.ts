@@ -1,5 +1,5 @@
 /**
- * MANDATORY ASSESSMENT PROBE — original Phase 1 brief, "MANDATORY PROBES":
+ * MANDATORY ASSESSMENT PROBE — quoting the original brief's "MANDATORY PROBES" section:
  *
  *   "The project must provide: npm run probe. It must execute two checks.
  *    Probe 1: Prompt injection message. Pass condition: not resolved, not

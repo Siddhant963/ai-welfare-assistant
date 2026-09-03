@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Sensible caps, not a full rate-limiting system (that's out of scope for
- * this phase). These exist to reject obviously-abusive payloads before they
- * ever reach the database or the AI provider.
+ * Sensible caps, not a full rate-limiting system. These exist to reject
+ * obviously-abusive payloads before they ever reach the database or the
+ * AI provider.
  */
 export const MAX_MESSAGE_LENGTH = 4000;
 export const MAX_NAME_LENGTH = 200;

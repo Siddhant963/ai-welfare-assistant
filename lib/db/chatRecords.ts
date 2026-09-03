@@ -61,10 +61,9 @@ const MAX_HISTORY_MESSAGES = 6;
 const MAX_HISTORY_CHARS = 300;
 
 /**
- * Last few turns of a conversation, oldest first, so the AI can resolve
- * references like "it" or "that" back to what was just discussed. Bounded
- * in count and per-message length — this is recent context, not a
- * transcript archive.
+ * Last few turns of a conversation, oldest first — enough for the AI to
+ * resolve references like "it" back to what was just discussed, not a
+ * full transcript.
  */
 export async function getRecentMessages(
   conversationId: string,
